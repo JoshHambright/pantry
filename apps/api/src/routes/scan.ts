@@ -159,10 +159,7 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
       .limit(1)
     if (!batch) throw notFound('Scan')
 
-    const candidates = await db
-      .select()
-      .from(scanCandidates)
-      .where(eq(scanCandidates.batchId, id))
+    const candidates = await db.select().from(scanCandidates).where(eq(scanCandidates.batchId, id))
     return toBatch(batch, candidates)
   })
 
@@ -183,9 +180,7 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
     const [location] = await db
       .select({ id: locations.id })
       .from(locations)
-      .where(
-        and(eq(locations.id, input.locationId), eq(locations.householdId, adult.householdId)),
-      )
+      .where(and(eq(locations.id, input.locationId), eq(locations.householdId, adult.householdId)))
       .limit(1)
     if (!location) throw notFound('Location')
 

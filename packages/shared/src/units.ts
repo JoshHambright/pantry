@@ -276,10 +276,15 @@ function readLeadingNumber(text: string): { value: number; length: number } | nu
     return { value: whole + part, length: mixedFraction[0].length }
   }
 
-  const mixedGlyph = /^(\d+)\s*([\u00bc\u00bd\u00be\u2153\u2154\u215b\u215c\u215d\u215e])/.exec(text)
+  const mixedGlyph = /^(\d+)\s*([\u00bc\u00bd\u00be\u2153\u2154\u215b\u215c\u215d\u215e])/.exec(
+    text,
+  )
   if (mixedGlyph) {
     const whole = Number.parseInt(mixedGlyph[1] ?? '0', 10)
-    return { value: whole + (FRACTION_CHARS[mixedGlyph[2] ?? ''] ?? 0), length: mixedGlyph[0].length }
+    return {
+      value: whole + (FRACTION_CHARS[mixedGlyph[2] ?? ''] ?? 0),
+      length: mixedGlyph[0].length,
+    }
   }
 
   const fraction = /^(\d+)\/(\d+)/.exec(text)
@@ -333,7 +338,11 @@ export function parseQuantity(input: string): ParsedQuantity | null {
       return {
         quantity: roundQuantity(leading.value),
         unit,
-        remainder: tokens.slice(take).join(' ').replace(/^of\s+/i, '').trim(),
+        remainder: tokens
+          .slice(take)
+          .join(' ')
+          .replace(/^of\s+/i, '')
+          .trim(),
       }
     }
   }

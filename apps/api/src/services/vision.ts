@@ -119,7 +119,10 @@ export function createClaudeVisionProvider(options: ClaudeVisionOptions): Vision
           throw new VisionError('Claude declined to describe that photo', false)
         }
         if (response.stop_reason === 'max_tokens') {
-          throw new VisionError('That photo had too much in it \u2014 try scanning in batches', false)
+          throw new VisionError(
+            'That photo had too much in it \u2014 try scanning in batches',
+            false,
+          )
         }
 
         const parsed = response.parsed_output
@@ -138,7 +141,10 @@ export function createClaudeVisionProvider(options: ClaudeVisionOptions): Vision
       } catch (error) {
         if (error instanceof VisionError) throw error
         if (error instanceof Anthropic.RateLimitError) {
-          throw new VisionError('Claude is rate-limited right now \u2014 try again in a moment', true)
+          throw new VisionError(
+            'Claude is rate-limited right now \u2014 try again in a moment',
+            true,
+          )
         }
         if (error instanceof Anthropic.AuthenticationError) {
           throw new VisionError('The Anthropic API key was rejected', false)

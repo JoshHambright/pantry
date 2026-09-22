@@ -5,6 +5,7 @@
 
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import {
+  baseUnitOf,
   canConvert,
   convert,
   roundQuantity,
@@ -175,10 +176,12 @@ export async function recipeAvailability(
     const productLots = productId ? (byProduct.get(productId) ?? []) : []
     const totals = summariseStock(productLots)
 
+    // baseQuantity, not quantity — the display value is rounded, and feeding
+    // that back through a conversion is how "half a gallon" becomes 0.4999.
     const onHand = totals.reduce(
       (sum, total) =>
         canConvert(total.unit, ingredient.unit)
-          ? sum + convert(total.quantity, total.unit, ingredient.unit)
+          ? sum + convert(total.baseQuantity, baseUnitOf(total.unit), ingredient.unit)
           : sum,
       0,
     )

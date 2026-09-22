@@ -3,13 +3,7 @@
  * cares about "now" takes it as an argument, so the tests are deterministic.
  */
 
-import {
-  canConvert,
-  convert,
-  roundQuantity,
-  unitDef,
-  type UnitCode,
-} from './units.js'
+import { baseUnitOf, canConvert, convert, roundQuantity, unitDef, type UnitCode } from './units.js'
 
 export interface StockLot {
   readonly id: string
@@ -23,12 +17,33 @@ export interface StockLot {
 export interface StockTotal {
   readonly group: string
   readonly unit: UnitCode
+  /** Rounded for display — do not do further arithmetic with this. */
   readonly quantity: number
+  /** Unrounded, in the group's base unit. This is what calculations use. */
+  readonly baseQuantity: number
   readonly lotCount: number
 }
 
-/** Pick the unit a total reads best in: 1500 g is "1.5 kg", 800 g stays "800 g". */
-export function preferredDisplayUnit(group: string, baseQuantity: number): UnitCode {
+/**
+ * Pick the unit a total reads best in.
+ *
+ * The rule is "answer in the unit they stocked it in": someone who buys milk by
+ * the gallon should be told they have half a gallon, not 1.893 L. So the unit
+ * of the largest holding wins. The one refinement is that a big pile of grams
+ * or millilitres promotes itself to kg or L, which is what a metric shopper
+ * would have written anyway.
+ */
+export function preferredDisplayUnit(
+  group: string,
+  baseQuantity: number,
+  stockedUnit?: UnitCode | undefined,
+): UnitCode {
+  if (stockedUnit && unitDef(stockedUnit).group === group) {
+    const isMetricBase = stockedUnit === 'g' || stockedUnit === 'ml'
+    if (!isMetricBase) return stockedUnit
+    if (Math.abs(baseQuantity) >= 1000) return stockedUnit === 'g' ? 'kg' : 'l'
+    return stockedUnit
+  }
   if (group === 'mass') return Math.abs(baseQuantity) >= 1000 ? 'kg' : 'g'
   if (group === 'volume') return Math.abs(baseQuantity) >= 1000 ? 'l' : 'ml'
   if (group === 'count') return 'each'
@@ -40,23 +55,37 @@ export function preferredDisplayUnit(group: string, baseQuantity: number): UnitC
  * and "500 g" yields two totals — that is the honest answer, not a bug.
  */
 export function summariseStock(lots: readonly StockLot[]): StockTotal[] {
-  const byGroup = new Map<string, { base: number; lotCount: number }>()
+  const byGroup = new Map<
+    string,
+    { base: number; lotCount: number; dominantUnit: UnitCode; dominantBase: number }
+  >()
 
   for (const lot of lots) {
     const def = unitDef(lot.unit)
-    const entry = byGroup.get(def.group) ?? { base: 0, lotCount: 0 }
-    entry.base += lot.quantity * def.toBase
+    const lotBase = lot.quantity * def.toBase
+    const entry = byGroup.get(def.group) ?? {
+      base: 0,
+      lotCount: 0,
+      dominantUnit: lot.unit,
+      dominantBase: -Infinity,
+    }
+    entry.base += lotBase
     entry.lotCount += 1
+    if (lotBase > entry.dominantBase) {
+      entry.dominantBase = lotBase
+      entry.dominantUnit = lot.unit
+    }
     byGroup.set(def.group, entry)
   }
 
   return [...byGroup.entries()]
-    .map(([group, { base, lotCount }]) => {
-      const unit = preferredDisplayUnit(group, base)
+    .map(([group, { base, lotCount, dominantUnit }]) => {
+      const unit = preferredDisplayUnit(group, base, dominantUnit)
       return {
         group,
         unit,
         quantity: roundQuantity(base / unitDef(unit).toBase),
+        baseQuantity: base,
         lotCount,
       }
     })
@@ -164,9 +193,12 @@ export function parShortfall(
   totals: readonly StockTotal[],
   par: { readonly quantity: number; readonly unit: UnitCode },
 ): number {
+  // Deliberately reads baseQuantity, not quantity: rounding a total to three
+  // decimals for display and then converting it back turns a clean "half a
+  // gallon short" into 0.4999.
   const onHand = totals.reduce((sum, total) => {
     if (!canConvert(total.unit, par.unit)) return sum
-    return sum + convert(total.quantity, total.unit, par.unit)
+    return sum + convert(total.baseQuantity, baseUnitOf(total.unit), par.unit)
   }, 0)
   return roundQuantity(Math.max(0, par.quantity - onHand), 4)
 }

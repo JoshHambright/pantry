@@ -122,7 +122,12 @@ export function parseNetContents(
 }
 
 export function mapOffProduct(upc: string, product: OffProduct): ProductLookupResult | null {
-  const name = (product.product_name_en ?? product.product_name ?? product.generic_name ?? '').trim()
+  const name = (
+    product.product_name_en ??
+    product.product_name ??
+    product.generic_name ??
+    ''
+  ).trim()
   if (name === '') return null
 
   const brandRaw = (product.brands ?? '').split(',')[0]?.trim()

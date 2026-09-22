@@ -568,8 +568,22 @@ describeDb('pantry api', () => {
     it('proposes candidates without touching the inventory', async () => {
       const josh = await bootstrapHousehold(harness.app)
       harness.setVisionItems([
-        { name: 'Bananas', brand: null, category: 'produce', quantity: 6, unit: 'each', confidence: 0.9 },
-        { name: 'Oat milk', brand: 'Oatly', category: 'dairy', quantity: 1, unit: 'l', confidence: 0.7 },
+        {
+          name: 'Bananas',
+          brand: null,
+          category: 'produce',
+          quantity: 6,
+          unit: 'each',
+          confidence: 0.9,
+        },
+        {
+          name: 'Oat milk',
+          brand: 'Oatly',
+          category: 'dairy',
+          quantity: 1,
+          unit: 'l',
+          confidence: 0.7,
+        },
       ])
 
       const response = await scan(josh)
@@ -586,8 +600,22 @@ describeDb('pantry api', () => {
       const josh = await bootstrapHousehold(harness.app)
       const locationId = await locationIdNamed(harness.app, josh, 'Fridge')
       harness.setVisionItems([
-        { name: 'Bananas', brand: null, category: 'produce', quantity: 6, unit: 'each', confidence: 0.9 },
-        { name: 'Mystery jar', brand: null, category: 'other', quantity: 1, unit: 'jar', confidence: 0.2 },
+        {
+          name: 'Bananas',
+          brand: null,
+          category: 'produce',
+          quantity: 6,
+          unit: 'each',
+          confidence: 0.9,
+        },
+        {
+          name: 'Mystery jar',
+          brand: null,
+          category: 'other',
+          quantity: 1,
+          unit: 'jar',
+          confidence: 0.2,
+        },
       ])
 
       const scanned = await scan(josh)
@@ -619,10 +647,20 @@ describeDb('pantry api', () => {
       await addStock(josh, riceId, locationId, { quantity: 500, unit: 'g' })
 
       harness.setVisionItems([
-        { name: 'Rice', brand: null, category: 'pantry', quantity: 1000, unit: 'g', confidence: 0.8 },
+        {
+          name: 'Rice',
+          brand: null,
+          category: 'pantry',
+          quantity: 1000,
+          unit: 'g',
+          confidence: 0.8,
+        },
       ])
       const scanned = await scan(josh)
-      const batch = scanned.json<{ id: string; candidates: { id: string; productId: string | null }[] }>()
+      const batch = scanned.json<{
+        id: string
+        candidates: { id: string; productId: string | null }[]
+      }>()
       expect(batch.candidates[0]?.productId).toBe(riceId)
 
       await post(`/api/scan/${batch.id}/apply`, josh, {

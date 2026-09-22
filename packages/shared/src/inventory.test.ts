@@ -23,6 +23,8 @@ describe('summariseStock', () => {
     ])
     expect(totals).toHaveLength(1)
     expect(totals[0]).toMatchObject({ group: 'mass', unit: 'kg', quantity: 1.5, lotCount: 2 })
+    // The base figure stays unrounded so later arithmetic does not drift.
+    expect(totals[0]?.baseQuantity).toBe(1500)
   })
 
   it('keeps a small mass in grams', () => {
@@ -37,6 +39,30 @@ describe('summariseStock', () => {
     ])
     expect(totals).toHaveLength(2)
     expect(totals.map((t) => t.group).sort()).toEqual(['can', 'mass'])
+  })
+
+  it('answers in the unit the food was stocked in', () => {
+    // 3 lb minus 1.5 lb should read as pounds, not as 680 grams.
+    const totals = summariseStock([lot({ id: 'a', quantity: 1.5, unit: 'lb' })])
+    expect(totals[0]).toMatchObject({ unit: 'lb', quantity: 1.5 })
+  })
+
+  it('keeps an imperial volume imperial', () => {
+    const totals = summariseStock([lot({ id: 'a', quantity: 0.5, unit: 'gal' })])
+    expect(totals[0]).toMatchObject({ unit: 'gal', quantity: 0.5 })
+  })
+
+  it('lets the largest holding choose the unit', () => {
+    const totals = summariseStock([
+      lot({ id: 'small', quantity: 50, unit: 'g' }),
+      lot({ id: 'big', quantity: 2, unit: 'lb' }),
+    ])
+    expect(totals[0]?.unit).toBe('lb')
+  })
+
+  it('promotes a big pile of grams to kilograms', () => {
+    const totals = summariseStock([lot({ id: 'a', quantity: 1500, unit: 'g' })])
+    expect(totals[0]).toMatchObject({ unit: 'kg', quantity: 1.5 })
   })
 
   it('returns nothing for no lots', () => {
@@ -137,8 +163,9 @@ describe('planConsumption', () => {
   })
 
   it('treats a zero need as already satisfied', () => {
-    expect(planConsumption([lot({ id: 'a', quantity: 5, unit: 'g' })], { quantity: 0, unit: 'g' }))
-      .toEqual({ draws: [], shortfall: 0, satisfied: true })
+    expect(
+      planConsumption([lot({ id: 'a', quantity: 5, unit: 'g' })], { quantity: 0, unit: 'g' }),
+    ).toEqual({ draws: [], shortfall: 0, satisfied: true })
   })
 
   it('handles a need with nothing on hand', () => {
@@ -217,5 +244,12 @@ describe('parShortfall', () => {
 
   it('counts the full par as missing when nothing is on hand', () => {
     expect(parShortfall([], { quantity: 2, unit: 'each' })).toBe(2)
+  })
+
+  it('does not let display rounding leak into the arithmetic', () => {
+    // Half a gallon summarises as 1.893 L once rounded for display. Converting
+    // that back would report a shortfall of 0.4999 gal instead of exactly 0.5.
+    const totals = summariseStock([lot({ id: 'a', quantity: 0.5, unit: 'gal' })])
+    expect(parShortfall(totals, { quantity: 1, unit: 'gal' })).toBe(0.5)
   })
 })

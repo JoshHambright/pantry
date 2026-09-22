@@ -36,9 +36,7 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
       .select({ request: requests, memberName: members.name })
       .from(requests)
       .innerJoin(members, eq(members.id, requests.requestedById))
-      .where(
-        and(eq(requests.householdId, member.householdId), eq(requests.status, 'open')),
-      )
+      .where(and(eq(requests.householdId, member.householdId), eq(requests.status, 'open')))
       .orderBy(desc(requests.createdAt))
       .limit(10)
 

@@ -27,7 +27,11 @@ const envSchema = z.object({
   /** Absent is fine — camera scanning degrades to barcode-only, nothing else breaks. */
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   VISION_MODEL: z.string().default('claude-opus-5'),
-  VISION_MAX_IMAGE_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024),
+  VISION_MAX_IMAGE_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 1024 * 1024),
 
   /** Open Food Facts asks every client to identify itself. */
   OFF_USER_AGENT: z.string().default('Pantry/0.1 (self-hosted household inventory)'),

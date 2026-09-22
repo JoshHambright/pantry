@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { createDb } from './client.js'
 import { loadEnv } from '../env.js'
+import { isEntrypoint } from '../entrypoint.js'
 
 /** Applies everything in apps/api/drizzle. Safe to run on every container start. */
 export async function runMigrations(databaseUrl: string): Promise<void> {
@@ -17,9 +18,7 @@ export async function runMigrations(databaseUrl: string): Promise<void> {
   }
 }
 
-const isEntrypoint = process.argv[1] !== undefined && import.meta.url.endsWith('migrate.js')
-
-if (isEntrypoint) {
+if (isEntrypoint(import.meta.url)) {
   const env = loadEnv()
   runMigrations(env.DATABASE_URL)
     .then(() => {

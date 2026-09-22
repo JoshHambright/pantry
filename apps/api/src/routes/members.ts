@@ -65,7 +65,9 @@ export async function registerMemberRoutes(app: FastifyInstance): Promise<void> 
         ...(input.name === undefined ? {} : { name: input.name }),
         ...(input.role === undefined ? {} : { role: input.role }),
         ...(input.color === undefined ? {} : { color: input.color }),
-        ...(input.pin === undefined ? {} : { pinHash: await hashPin(input.pin), failedAttempts: 0, lockedUntil: null }),
+        ...(input.pin === undefined
+          ? {}
+          : { pinHash: await hashPin(input.pin), failedAttempts: 0, lockedUntil: null }),
       })
       .where(eq(members.id, id))
       .returning()

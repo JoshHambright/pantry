@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+
+# CI never needs real credentials: the vision provider is stubbed in tests and
+# the barcode lookup is a null implementation, so no Anthropic key and no
+# outbound calls to Open Food Facts.
+env:
+  TEST_DATABASE_URL: postgres://pantry:pantry@127.0.0.1:5432/pantry_test
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pantry
+          POSTGRES_PASSWORD: pantry
+          POSTGRES_DB: pantry_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pantry"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # The image is what actually gets deployed, so a broken Dockerfile is a
+      # broken release even when every test passes.
+      - name: Build image
+        run: docker build -t pantry:ci .

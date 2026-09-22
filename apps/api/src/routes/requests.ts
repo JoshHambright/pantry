@@ -6,10 +6,7 @@ import { members, requests } from '../db/schema.js'
 import { conflict, forbidden, notFound } from '../errors.js'
 import { addIfAbsent } from '../services/shopping.js'
 
-const toRequest = (
-  row: typeof requests.$inferSelect,
-  requestedByName: string,
-): FamilyRequest => ({
+const toRequest = (row: typeof requests.$inferSelect, requestedByName: string): FamilyRequest => ({
   id: row.id,
   kind: row.kind,
   text: row.text,

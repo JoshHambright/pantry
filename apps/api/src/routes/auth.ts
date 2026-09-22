@@ -82,7 +82,11 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const input = loginSchema.parse(request.body)
 
-      const [member] = await db.select().from(members).where(eq(members.id, input.memberId)).limit(1)
+      const [member] = await db
+        .select()
+        .from(members)
+        .where(eq(members.id, input.memberId))
+        .limit(1)
       if (!member) throw unauthorized('That PIN did not work')
 
       if (member.lockedUntil && member.lockedUntil.getTime() > Date.now()) {
@@ -97,8 +101,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
           .update(members)
           .set({
             failedAttempts: attempts,
-            lockedUntil:
-              attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null,
+            lockedUntil: attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null,
           })
           .where(eq(members.id, member.id))
         throw unauthorized('That PIN did not work')

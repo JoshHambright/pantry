@@ -211,7 +211,10 @@ export const applyScanSchema = z.object({
 })
 
 export const barcodeLookupSchema = z.object({
-  upc: z.string().trim().regex(/^\d{6,14}$/),
+  upc: z
+    .string()
+    .trim()
+    .regex(/^\d{6,14}$/),
 })
 
 export type LoginInput = z.infer<typeof loginSchema>

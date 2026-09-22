@@ -97,9 +97,7 @@ export async function registerMealPlanRoutes(app: FastifyInstance): Promise<void
         ...(input.note === undefined ? {} : { note: input.note ?? null }),
         ...(input.servings === undefined ? {} : { servings: input.servings ?? null }),
       })
-      .where(
-        and(eq(mealPlanEntries.id, id), eq(mealPlanEntries.householdId, adult.householdId)),
-      )
+      .where(and(eq(mealPlanEntries.id, id), eq(mealPlanEntries.householdId, adult.householdId)))
       .returning()
     if (!updated) throw notFound('Meal')
 
