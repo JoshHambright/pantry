@@ -113,14 +113,16 @@ from reality is worse than one with gaps, because a wrong number gets trusted.
 
 ## Documentation
 
-| File                                     | Contents                                                             |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| [`docs/PRODUCT.md`](docs/PRODUCT.md)     | What this is for, who can do what, what is deliberately out of scope |
-| [`docs/DEPLOY.md`](docs/DEPLOY.md)       | Running it on a Pi, Tailscale, backups, troubleshooting              |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Why it is built the way it is. Read before changing an approach      |
-| [`docs/API.md`](docs/API.md)             | Endpoint reference                                                   |
-| [`docs/TRACKING.md`](docs/TRACKING.md)   | Live build tracker                                                   |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md)     | Phases and exit criteria                                             |
+| File                                     | Contents                                                                    |
+| ---------------------------------------- | --------------------------------------------------------------------------- |
+| [`docs/PRODUCT.md`](docs/PRODUCT.md)     | What this is for, who can do what, what is deliberately out of scope        |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md)       | Running it on a Pi, Tailscale, backups, troubleshooting                     |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Why it is built the way it is. Read before changing an approach             |
+| [`docs/API.md`](docs/API.md)             | Endpoint reference                                                          |
+| [`docs/NOTES.md`](docs/NOTES.md)         | What is actually proven vs. what only looks it, rough edges, open questions |
+| [`docs/TRACKING.md`](docs/TRACKING.md)   | Live build tracker                                                          |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md)     | Phases and exit criteria                                                    |
+| [`scripts/README.md`](scripts/README.md) | Dev tooling: local database, stub vision server, browser walkthrough        |
 
 ---
 
