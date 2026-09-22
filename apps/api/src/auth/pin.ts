@@ -1,7 +1,18 @@
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto'
+import {
+  randomBytes,
+  scrypt as scryptCallback,
+  timingSafeEqual,
+  type ScryptOptions,
+} from 'node:crypto'
 import { promisify } from 'node:util'
 
-const scrypt = promisify(scryptCallback)
+// promisify resolves to the no-options overload, so the options form is restated.
+const scrypt = promisify(scryptCallback) as (
+  password: string,
+  salt: Buffer,
+  keylen: number,
+  options: ScryptOptions,
+) => Promise<Buffer>
 
 /**
  * A four-digit PIN has about 13 bits of entropy, so the hash cost is doing real
@@ -18,12 +29,12 @@ const MAX_MEM = 96 * 1024 * 1024
 
 export async function hashPin(pin: string): Promise<string> {
   const salt = randomBytes(16)
-  const derived = (await scrypt(pin, salt, KEY_LENGTH, {
+  const derived = await scrypt(pin, salt, KEY_LENGTH, {
     N: COST,
     r: BLOCK_SIZE,
     p: PARALLELISM,
     maxmem: MAX_MEM,
-  })) as Buffer
+  })
   return [
     'scrypt',
     COST,
@@ -47,12 +58,12 @@ export async function verifyPin(pin: string, stored: string): Promise<boolean> {
   const expected = Buffer.from(hashRaw, 'base64')
   let derived: Buffer
   try {
-    derived = (await scrypt(pin, Buffer.from(saltRaw, 'base64'), expected.length, {
+    derived = await scrypt(pin, Buffer.from(saltRaw, 'base64'), expected.length, {
       N: cost,
       r: blockSize,
       p: parallelism,
       maxmem: MAX_MEM,
-    })) as Buffer
+    })
   } catch {
     return false
   }

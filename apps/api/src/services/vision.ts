@@ -101,9 +101,8 @@ export function createClaudeVisionProvider(options: ClaudeVisionOptions): Vision
           : 'List the groceries in these photos.',
       })
 
-      let response: Awaited<ReturnType<typeof client.messages.parse<typeof visionResultSchema>>>
       try {
-        response = await client.messages.parse({
+        const response = await client.messages.parse({
           model: options.model,
           max_tokens: 16000,
           system: SYSTEM_PROMPT,
@@ -114,40 +113,42 @@ export function createClaudeVisionProvider(options: ClaudeVisionOptions): Vision
           },
           messages: [{ role: 'user', content }],
         })
+
+        // A refusal arrives as a normal 200, so it has to be checked explicitly.
+        if (response.stop_reason === 'refusal') {
+          throw new VisionError('Claude declined to describe that photo', false)
+        }
+        if (response.stop_reason === 'max_tokens') {
+          throw new VisionError('That photo had too much in it \u2014 try scanning in batches', false)
+        }
+
+        const parsed = response.parsed_output
+        if (!parsed) throw new VisionError('Claude returned something unreadable', true)
+
+        return parsed.items
+          .filter((item) => item.name.trim() !== '' && item.quantity > 0)
+          .map((item) => ({
+            name: item.name.trim(),
+            brand: item.brand?.trim() ? item.brand.trim() : null,
+            category: item.category,
+            quantity: item.quantity,
+            unit: item.unit,
+            confidence: Math.min(1, Math.max(0, item.confidence)),
+          }))
       } catch (error) {
+        if (error instanceof VisionError) throw error
         if (error instanceof Anthropic.RateLimitError) {
-          throw new VisionError('Claude is rate-limited right now — try again in a moment', true)
+          throw new VisionError('Claude is rate-limited right now \u2014 try again in a moment', true)
         }
         if (error instanceof Anthropic.AuthenticationError) {
           throw new VisionError('The Anthropic API key was rejected', false)
         }
         if (error instanceof Anthropic.APIError) {
-          throw new VisionError(`Claude could not read the photo (${error.status})`, error.status >= 500)
+          const status = error.status ?? 0
+          throw new VisionError(`Claude could not read the photo (${status})`, status >= 500)
         }
         throw new VisionError('Could not reach Claude', true)
       }
-
-      // A refusal arrives as a normal 200, so it has to be checked explicitly.
-      if (response.stop_reason === 'refusal') {
-        throw new VisionError('Claude declined to describe that photo', false)
-      }
-      if (response.stop_reason === 'max_tokens') {
-        throw new VisionError('That photo had too much in it — try scanning in batches', false)
-      }
-
-      const parsed = response.parsed_output
-      if (!parsed) throw new VisionError('Claude returned something unreadable', true)
-
-      return parsed.items
-        .filter((item) => item.name.trim() !== '' && item.quantity > 0)
-        .map((item) => ({
-          name: item.name.trim(),
-          brand: item.brand?.trim() ? item.brand.trim() : null,
-          category: item.category,
-          quantity: item.quantity,
-          unit: item.unit,
-          confidence: Math.min(1, Math.max(0, item.confidence)),
-        }))
     },
   }
 }

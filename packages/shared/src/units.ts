@@ -263,46 +263,82 @@ export interface ParsedQuantity {
  * "½ gal milk", "3 bananas". A missing or unknown unit falls back to `each`,
  * which is what someone means when they write "3 bananas".
  */
+/**
+ * Read a leading amount. Ordered most specific first, because "1/4" starts with
+ * a digit that a plain number pattern would happily swallow on its own.
+ */
+function readLeadingNumber(text: string): { value: number; length: number } | null {
+  const mixedFraction = /^(\d+)\s+(\d+)\/(\d+)/.exec(text)
+  if (mixedFraction) {
+    const whole = Number.parseInt(mixedFraction[1] ?? '0', 10)
+    const denominator = Number.parseInt(mixedFraction[3] ?? '0', 10)
+    const part = denominator === 0 ? 0 : Number.parseInt(mixedFraction[2] ?? '0', 10) / denominator
+    return { value: whole + part, length: mixedFraction[0].length }
+  }
+
+  const mixedGlyph = /^(\d+)\s*([\u00bc\u00bd\u00be\u2153\u2154\u215b\u215c\u215d\u215e])/.exec(text)
+  if (mixedGlyph) {
+    const whole = Number.parseInt(mixedGlyph[1] ?? '0', 10)
+    return { value: whole + (FRACTION_CHARS[mixedGlyph[2] ?? ''] ?? 0), length: mixedGlyph[0].length }
+  }
+
+  const fraction = /^(\d+)\/(\d+)/.exec(text)
+  if (fraction) {
+    const denominator = Number.parseInt(fraction[2] ?? '0', 10)
+    // "1/0" is nonsense; fall back to the numerator rather than producing Infinity.
+    const value =
+      denominator === 0
+        ? Number.parseInt(fraction[1] ?? '0', 10)
+        : Number.parseInt(fraction[1] ?? '0', 10) / denominator
+    return { value, length: fraction[0].length }
+  }
+
+  const glyph = /^([\u00bc\u00bd\u00be\u2153\u2154\u215b\u215c\u215d\u215e])/.exec(text)
+  if (glyph) {
+    return { value: FRACTION_CHARS[glyph[1] ?? ''] ?? 0, length: glyph[0].length }
+  }
+
+  const plain = /^(\d+(?:\.\d+)?)/.exec(text)
+  if (plain) {
+    return { value: Number.parseFloat(plain[1] ?? '0'), length: plain[0].length }
+  }
+
+  return null
+}
+
+/**
+ * Parse the front of a free-text line: "2 lbs chicken thighs", "1 1/2 cups rice",
+ * "\u00bd gal milk", "3 bananas". A missing or unknown unit falls back to `each`,
+ * which is what someone means when they write "3 bananas".
+ */
 export function parseQuantity(input: string): ParsedQuantity | null {
   const text = input.trim()
   if (text === '') return null
 
-  const numberPattern = /^(\d+(?:\.\d+)?)?\s*(\d+\/\d+)?\s*([¼½¾⅓⅔⅛⅜⅝⅞])?/
-  const match = numberPattern.exec(text)
-  if (!match) return null
-
-  const [whole, fraction, glyph] = [match[1], match[2], match[3]]
-  if (whole === undefined && fraction === undefined && glyph === undefined) {
-    // No leading number at all — treat the whole line as one item.
+  const leading = readLeadingNumber(text)
+  if (!leading) {
+    // No number at all — the whole line is one item.
     return { quantity: 1, unit: 'each', remainder: text }
   }
 
-  let quantity = whole === undefined ? 0 : Number.parseFloat(whole)
-  if (fraction !== undefined) {
-    const [num, den] = fraction.split('/')
-    const denominator = Number.parseInt(den ?? '0', 10)
-    if (denominator !== 0) quantity += Number.parseInt(num ?? '0', 10) / denominator
-  }
-  if (glyph !== undefined) quantity += FRACTION_CHARS[glyph] ?? 0
-
-  const rest = text.slice(match[0].length).trim()
+  const rest = text.slice(leading.length).trim()
 
   // "fl oz" is the only two-word unit we accept, so try two tokens then one.
-  const tokens = rest.split(/\s+/)
+  const tokens = rest === '' ? [] : rest.split(/\s+/)
   for (const take of [2, 1]) {
     if (tokens.length < take) continue
     const candidate = tokens.slice(0, take).join(' ')
     const unit = normaliseUnit(candidate)
     if (unit) {
       return {
-        quantity: roundQuantity(quantity),
+        quantity: roundQuantity(leading.value),
         unit,
         remainder: tokens.slice(take).join(' ').replace(/^of\s+/i, '').trim(),
       }
     }
   }
 
-  return { quantity: roundQuantity(quantity), unit: 'each', remainder: rest }
+  return { quantity: roundQuantity(leading.value), unit: 'each', remainder: rest }
 }
 
 /** "1.5 kg", "2 cans", "3" — `each` prints bare, because "3 each apples" reads badly. */

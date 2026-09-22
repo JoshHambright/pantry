@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --build",
+    "typecheck": "tsc --build && pnpm --filter @pantry/web typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
