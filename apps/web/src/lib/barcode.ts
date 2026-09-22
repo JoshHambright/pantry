@@ -28,10 +28,6 @@ function nativeDetector(): BarcodeDetectorConstructor | null {
   return candidate ?? null
 }
 
-export function isNativeScanningAvailable(): boolean {
-  return nativeDetector() !== null
-}
-
 /** A UPC-E code expands to UPC-A, which is what product databases are keyed by. */
 export function normaliseBarcode(raw: string): string {
   const digits = raw.replace(/\D/g, '')

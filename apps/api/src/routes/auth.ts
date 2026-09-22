@@ -135,12 +135,18 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/auth/session', async (request): Promise<SessionInfo> => {
     const member = requireMember(request)
-    const [household] = await db
-      .select({ id: households.id, name: households.name })
-      .from(households)
-      .where(eq(households.id, member.householdId))
+
+    const [row] = await db
+      .select({
+        createdAt: members.createdAt,
+        householdId: households.id,
+        householdName: households.name,
+      })
+      .from(members)
+      .innerJoin(households, eq(households.id, members.householdId))
+      .where(eq(members.id, member.id))
       .limit(1)
-    if (!household) throw notFound('Household')
+    if (!row) throw notFound('Household')
 
     return {
       member: {
@@ -148,9 +154,9 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
         name: member.name,
         role: member.role,
         color: member.color,
-        createdAt: new Date(0).toISOString(),
+        createdAt: row.createdAt.toISOString(),
       },
-      household,
+      household: { id: row.householdId, name: row.householdName },
     }
   })
 }

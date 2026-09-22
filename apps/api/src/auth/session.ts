@@ -1,5 +1,5 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { and, eq, lt } from 'drizzle-orm'
+import { createHash, randomBytes } from 'node:crypto'
+import { eq, lt } from 'drizzle-orm'
 import type { Db } from '../db/client.js'
 import { members, sessions } from '../db/schema.js'
 
@@ -77,14 +77,3 @@ export async function destroyAllSessionsFor(db: Db, memberId: string): Promise<v
 export async function pruneExpiredSessions(db: Db): Promise<void> {
   await db.delete(sessions).where(lt(sessions.expiresAt, new Date()))
 }
-
-/** Constant-time string compare that tolerates length differences. */
-export function safeEquals(a: string, b: string): boolean {
-  const bufA = Buffer.from(a)
-  const bufB = Buffer.from(b)
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
-}
-
-export const memberScope = (householdId: string) =>
-  and(eq(members.householdId, householdId)) as ReturnType<typeof and>

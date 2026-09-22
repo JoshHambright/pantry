@@ -26,8 +26,5 @@ export const notFound = (what: string): HttpError =>
 
 export const conflict = (message: string): HttpError => new HttpError(409, 'conflict', message)
 
-export const tooManyRequests = (message: string): HttpError =>
-  new HttpError(429, 'too_many_requests', message)
-
 export const unavailable = (message: string): HttpError =>
   new HttpError(503, 'service_unavailable', message)
