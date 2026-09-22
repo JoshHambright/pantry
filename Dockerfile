@@ -17,7 +17,10 @@ COPY . .
 RUN pnpm build
 
 # Drop dev dependencies from the tree we are about to copy into the runtime.
-RUN pnpm --filter @pantry/api --filter @pantry/shared --prod deploy /out
+# --legacy: without injected workspace packages, pnpm 10 refuses to deploy.
+# Injecting them instead would make local dev require a reinstall after every
+# change to packages/shared, which is a worse trade for a two-package workspace.
+RUN pnpm --filter @pantry/api --prod --legacy deploy /out
 
 
 FROM node:22-alpine AS runtime

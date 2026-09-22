@@ -17,3 +17,6 @@ uploads/
 .DS_Store
 .vscode/
 .idea/
+
+# Database dumps (docker-compose mounts this)
+backups/
