@@ -1,0 +1,38 @@
+{
+  "name": "pantry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted grocery inventory, barcode + camera scanning, and family meal planning",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm --recursive --if-present build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "db:generate": "pnpm --filter @pantry/api db:generate",
+    "db:migrate": "pnpm --filter @pantry/api db:migrate",
+    "db:seed": "pnpm --filter @pantry/api db:seed",
+    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
+    "clean": "tsc --build --clean"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.8",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
+  }
+}

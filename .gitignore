@@ -1,0 +1,19 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Secrets — never commit. See .env.example.
+.env
+.env.*
+!.env.example
+
+# Local data
+data/
+uploads/
+*.log
+
+.DS_Store
+.vscode/
+.idea/
