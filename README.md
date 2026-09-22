@@ -9,6 +9,17 @@ Built for two adults who run the kitchen and two kids who can ask for things.
 
 ---
 
+|                                                          |                                                               |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| ![The kitchen dashboard](docs/screenshots/dashboard.png) | ![Confirming a photo scan](docs/screenshots/scan-review.png)  |
+| What needs attention today                               | A photo scan, waiting to be confirmed                         |
+| ![The pantry](docs/screenshots/pantry.png)               | ![A recipe scored against stock](docs/screenshots/recipe.png) |
+| What is in the house                                     | What you can make with it                                     |
+
+_Screenshots use the demo seed data._
+
+---
+
 ## What it does
 
 **Scan groceries in.** Point the phone at a barcode and it resolves against Open

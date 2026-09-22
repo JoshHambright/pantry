@@ -87,7 +87,9 @@ export function Shopping({ isAdult }: { isAdult: boolean }) {
               void api.shopping.refill().then((result) => {
                 setNote(
                   result.added.length === 0
-                    ? 'Nothing is below its par level.'
+                    ? // Not "nothing is low" — something may be low and already
+                      // queued, and saying otherwise contradicts the list below.
+                      'Everything running low is already on the list.'
                     : `Added ${result.added.length} low item(s).`,
                 )
                 refresh()
@@ -101,7 +103,7 @@ export function Shopping({ isAdult }: { isAdult: boolean }) {
             disabled={inCart.length === 0}
             onClick={() => setCheckout(true)}
           >
-            Put {inCart.length} away
+            {inCart.length === 0 ? 'Put the shopping away' : `Put ${inCart.length} away`}
           </button>
         </div>
       ) : null}
