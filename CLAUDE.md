@@ -33,6 +33,13 @@ without explicit permission.
 1. `git log --oneline -10` — the last push is where we actually are.
 2. `docs/TRACKING.md` — task status is the source of truth for progress.
 3. `docs/DECISIONS.md` — do not re-litigate settled decisions.
+4. `docs/NOTES.md` — what is actually proven, what only looks proven, and the
+   open questions. It also has the command sequence to rebuild a working dev
+   environment from a fresh container.
+
+**There is no Docker daemon in a cloud session.** `./scripts/dev-db.sh start`
+brings up a native Postgres instead; `scripts/README.md` covers that and the
+other two dev scripts.
 
 The tracker is updated **in the same commit as the work it describes**. It is
 the handoff mechanism, not documentation.
@@ -58,6 +65,7 @@ apps/web          React + Vite PWA, phone-first
 ```bash
 pnpm install
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+# ...or, with no docker daemon: ./scripts/dev-db.sh start
 pnpm db:migrate && pnpm db:seed      # every PIN is 1234
 pnpm dev                             # API :8080, web :5173
 pnpm verify                          # everything CI runs

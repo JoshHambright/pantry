@@ -20,3 +20,6 @@ uploads/
 
 # Database dumps (docker-compose mounts this)
 backups/
+
+# Screenshots from scripts/ui-walkthrough.mjs
+.walkthrough/
