@@ -1,0 +1,11 @@
+# Development overlay. Publishes Postgres to the host so `pnpm dev`, the tests
+# and psql can reach it; the production stack deliberately does not.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+#
+# Bound to 127.0.0.1, not 0.0.0.0 — this is for the machine you are sitting at.
+
+services:
+  db:
+    ports:
+      - '127.0.0.1:5432:5432'

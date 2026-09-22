@@ -68,7 +68,7 @@ front. [`docs/DEPLOY.md`](docs/DEPLOY.md) covers it in three commands.
 
 ```bash
 pnpm install
-docker compose up -d db
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
 pnpm db:migrate && pnpm db:seed     # demo household; every PIN is 1234
 pnpm dev                            # API :8080, web :5173
 ```

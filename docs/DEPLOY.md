@@ -141,19 +141,28 @@ the database is not a backup.
 
 ```bash
 pnpm install
-docker compose up -d db              # just the database
-createdb / or use the compose one
+
+# The dev overlay publishes Postgres to 127.0.0.1; the production stack
+# keeps it unreachable from the host on purpose.
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+
+export DATABASE_URL=postgres://pantry:<password>@127.0.0.1:5432/pantry
 pnpm db:migrate
 pnpm db:seed                         # demo household, everyone's PIN is 1234
 pnpm dev                             # API on :8080, web on :5173
 ```
 
+`pnpm dev` reads `.env` from the repository root, so putting `DATABASE_URL`
+there saves exporting it each time.
+
 The Vite dev server proxies `/api` to the API, so open `http://localhost:5173`.
 
-Tests need a database of their own:
+Tests need a database of their own, and it has to exist before they run —
+migrations create tables, not the database:
 
 ```bash
-export TEST_DATABASE_URL=postgres://pantry:pantry@127.0.0.1:5432/pantry_test
+docker compose exec db createdb -U pantry pantry_test
+export TEST_DATABASE_URL=postgres://pantry:<password>@127.0.0.1:5432/pantry_test
 pnpm test
 ```
 
