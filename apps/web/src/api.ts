@@ -8,6 +8,7 @@ import type {
   ApiError,
   DashboardSummary,
   FamilyRequest,
+  ImportedRecipe,
   InventoryEvent,
   Location,
   Lot,
@@ -179,6 +180,9 @@ export const api = {
     availability: () => request<{ availability: RecipeAvailability[] }>('/recipes/availability'),
     create: (body: Record<string, unknown>) =>
       request<Recipe>('/recipes', { method: 'POST', body }),
+    /** Reads a page and returns a draft. Saves nothing. */
+    import: (url: string) =>
+      request<ImportedRecipe>('/recipes/import', { method: 'POST', body: { url } }),
     update: (id: string, body: Record<string, unknown>) =>
       request<Recipe>(`/recipes/${id}`, { method: 'PATCH', body }),
     remove: (id: string) => request<void>(`/recipes/${id}`, { method: 'DELETE' }),

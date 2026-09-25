@@ -386,8 +386,36 @@ function NewRecipeSheet({ onClose, onCreated }: { onClose: () => void; onCreated
   const [servings, setServings] = useState(4)
   const [lines, setLines] = useState('')
   const [instructions, setInstructions] = useState('')
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null)
+  const [link, setLink] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  /**
+   * Importing fills the form rather than saving. The ingredient lines come back
+   * exactly as the site wrote them, so what gets parsed is what you can see and
+   * edit — same rule as a photo scan: a machine proposes, a person decides.
+   */
+  const importFromLink = async () => {
+    setImporting(true)
+    setError(null)
+    setNote(null)
+    try {
+      const draft = await api.recipes.import(link.trim())
+      setName(draft.name)
+      setServings(draft.servings)
+      setInstructions(draft.instructions ?? '')
+      setLines(draft.ingredients.map((ingredient) => ingredient.raw).join('\n'))
+      setSourceUrl(draft.sourceUrl)
+      setNote(`Read ${draft.ingredients.length} ingredient(s). Check them over before saving.`)
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'Could not read that page')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const submit = async () => {
     setBusy(true)
@@ -411,6 +439,7 @@ function NewRecipeSheet({ onClose, onCreated }: { onClose: () => void; onCreated
         servings,
         ingredients,
         ...(instructions.trim() ? { instructions: instructions.trim() } : {}),
+        ...(sourceUrl ? { sourceUrl } : {}),
       })
       onCreated()
     } catch (caught) {
@@ -422,7 +451,30 @@ function NewRecipeSheet({ onClose, onCreated }: { onClose: () => void; onCreated
   return (
     <Sheet title="New recipe" onClose={onClose}>
       {error ? <Banner kind="error">{error}</Banner> : null}
-      <div className="stack">
+      {note ? <Banner kind="info">{note}</Banner> : null}
+
+      <Field label="Import from a link" hint="Most recipe sites work. Nothing saves until you do.">
+        <div className="row">
+          <input
+            className="grow"
+            type="url"
+            inputMode="url"
+            value={link}
+            placeholder="https://example.com/a-recipe"
+            onChange={(event) => setLink(event.target.value)}
+          />
+          <button
+            type="button"
+            className="btn"
+            disabled={importing || link.trim() === ''}
+            onClick={() => void importFromLink()}
+          >
+            {importing ? 'Reading…' : 'Read'}
+          </button>
+        </div>
+      </Field>
+
+      <div className="stack" style={{ marginTop: 14 }}>
         <Field label="Name">
           <input value={name} onChange={(event) => setName(event.target.value)} required />
         </Field>

@@ -508,6 +508,43 @@ describeDb('pantry api', () => {
       expect(again.statusCode).toBe(409)
     })
 
+    describe('importing from a link', () => {
+      it('is refused for a child', async () => {
+        const josh = await bootstrapHousehold(harness.app)
+        const kid = await addMember(harness.app, josh, { name: 'Sam', role: 'child', pin: '4321' })
+        const response = await post('/api/recipes/import', kid, {
+          url: 'https://example.com/recipe',
+        })
+        expect(response.statusCode).toBe(403)
+      })
+
+      it.each([
+        'http://localhost/admin',
+        'http://127.0.0.1:5432/',
+        'http://192.168.1.1/',
+        'http://169.254.169.254/latest/meta-data/',
+        'http://nas.local/files',
+      ])('refuses %s', async (url) => {
+        // This endpoint makes the server fetch a URL someone typed, and the
+        // server sits next to a router admin page and a database.
+        const josh = await bootstrapHousehold(harness.app)
+        const response = await post('/api/recipes/import', josh, { url })
+        expect(response.statusCode).toBe(400)
+        expect(response.json<{ message: string }>().message).toMatch(/network|web address/)
+      })
+
+      it('refuses a scheme that is not http', async () => {
+        const josh = await bootstrapHousehold(harness.app)
+        const response = await post('/api/recipes/import', josh, { url: 'file:///etc/passwd' })
+        expect(response.statusCode).toBe(400)
+      })
+
+      it('rejects an empty url before trying anything', async () => {
+        const josh = await bootstrapHousehold(harness.app)
+        expect((await post('/api/recipes/import', josh, { url: '' })).statusCode).toBe(400)
+      })
+    })
+
     it('matches a loose ingredient name to a stocked product', async () => {
       const josh = await bootstrapHousehold(harness.app)
       const locationId = await firstLocationId(harness.app, josh)

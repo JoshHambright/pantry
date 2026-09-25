@@ -85,15 +85,16 @@ Everything is under `/api`. Authentication is a `httpOnly` session cookie set by
 
 ## Recipes · **Adult** to write
 
-| Method | Path                                  | Notes                                                                                        |
-| ------ | ------------------------------------- | -------------------------------------------------------------------------------------------- |
-| GET    | `/recipes`                            |                                                                                              |
-| GET    | `/recipes/:id`                        |                                                                                              |
-| GET    | `/recipes/availability`               | Every recipe, scored against current stock.                                                  |
-| GET    | `/recipes/:id/availability?servings=` | Per-ingredient need / on-hand / shortfall.                                                   |
-| POST   | `/recipes`                            | Ingredients may name a `productId` or just a name — names are matched against the catalogue. |
-| PATCH  | `/recipes/:id`                        | Ingredients are replaced wholesale when supplied.                                            |
-| DELETE | `/recipes/:id`                        |                                                                                              |
+| Method | Path                                  | Notes                                                                                                                                                                |
+| ------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/recipes`                            |                                                                                                                                                                      |
+| GET    | `/recipes/:id`                        |                                                                                                                                                                      |
+| GET    | `/recipes/availability`               | Every recipe, scored against current stock.                                                                                                                          |
+| GET    | `/recipes/:id/availability?servings=` | Per-ingredient need / on-hand / shortfall.                                                                                                                           |
+| POST   | `/recipes/import`                     | **Adult.** `{ url }`. Reads schema.org JSON-LD off the page and returns a draft. Saves nothing. Refuses private/loopback addresses, including via DNS and redirects. |
+| POST   | `/recipes`                            | Ingredients may name a `productId` or just a name — names are matched against the catalogue.                                                                         |
+| PATCH  | `/recipes/:id`                        | Ingredients are replaced wholesale when supplied.                                                                                                                    |
+| DELETE | `/recipes/:id`                        |                                                                                                                                                                      |
 
 ## Meal plan · **Adult** to write
 

@@ -257,3 +257,36 @@ The cost of being generous is one ~125 KB gzipped chunk (ZXing, which only
 Safari loads) fetched once on a home network.
 **Costs:** A slightly larger install. Immaterial at household scale.
 **Status:** ✅ Accepted
+
+---
+
+### D-019 · Recipe import reads schema.org JSON-LD, and nothing else
+
+**Chose:** `POST /recipes/import` fetches a page and reads its
+`application/ld+json` Recipe block. No HTML scraping heuristics, no model call.
+A page without structured data gets a clear "paste the ingredients instead".
+**Why:** Recipe sites publish this markup because Google's rich results depend
+on it, so it is both widespread and stable. That makes the importer
+deterministic, free, offline-testable, and immune to a site restyling itself.
+An LLM fallback would cost money per import and turn a reliable feature into a
+probabilistic one, to rescue the minority of pages that publish nothing — and
+the recipe form already parses pasted lines like "2 lbs chicken thighs".
+**Costs:** Pages with no JSON-LD cannot be imported. They can be pasted.
+**Status:** ✅ Accepted
+
+---
+
+### D-020 · The importer refuses to fetch anything on the local network
+
+**Chose:** Before fetching, the URL's host is checked _and resolved_, and any
+answer in private, loopback, link-local or CGNAT space is refused. Redirects
+are followed by hand so every hop gets the same check. Only http and https.
+**Why:** This is the one endpoint that makes the server fetch an address a
+person typed, and the server sits on a home network next to a router admin
+page, a Postgres instance and whatever else is on the LAN. A hostname that
+resolves to `192.168.1.1`, or a public URL that redirects there, would turn
+"import a recipe" into "read anything in my house". Checking the spelling is
+not enough — DNS is the attack.
+**Costs:** A recipe genuinely hosted on the LAN cannot be imported. Nobody has
+one.
+**Status:** ✅ Accepted

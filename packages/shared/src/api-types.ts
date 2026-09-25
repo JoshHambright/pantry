@@ -148,6 +148,23 @@ export interface RecipeAvailability {
   ingredients: IngredientAvailability[]
 }
 
+/** A recipe read off a web page, offered for confirmation. Nothing is saved. */
+export interface ImportedIngredient {
+  name: string
+  quantity: number
+  unit: UnitCode
+  /** The original line, so a human can check what we made of it. */
+  raw: string
+}
+
+export interface ImportedRecipe {
+  name: string
+  servings: number
+  instructions: string | null
+  sourceUrl: string
+  ingredients: ImportedIngredient[]
+}
+
 export interface MealPlanEntry {
   id: string
   date: string

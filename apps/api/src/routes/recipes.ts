@@ -1,9 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
-import { recipeSchema, updateRecipeSchema } from '@pantry/shared'
+import { importRecipeSchema, recipeSchema, updateRecipeSchema } from '@pantry/shared'
 import { requireAdult, requireMember } from '../context.js'
 import { recipeIngredients, recipes } from '../db/schema.js'
 import { conflict, notFound } from '../errors.js'
+import { importRecipeFromUrl } from '../services/recipe-import.js'
 import { loadRecipe, loadRecipes, recipeAvailability } from '../services/recipes.js'
 
 export async function registerRecipeRoutes(app: FastifyInstance): Promise<void> {
@@ -44,6 +45,21 @@ export async function registerRecipeRoutes(app: FastifyInstance): Promise<void> 
       Number.isFinite(parsed) ? parsed : undefined,
     )
   })
+
+  /**
+   * Read a recipe off a web page. Returns a draft and saves nothing — the same
+   * rule as a photo scan: a machine proposes, a person decides (D-006).
+   */
+  app.post(
+    '/recipes/import',
+    // This is the one endpoint that makes the server fetch a URL someone typed.
+    { config: { rateLimit: { max: 20, timeWindow: '5 minutes' } } },
+    async (request) => {
+      requireAdult(request)
+      const { url } = importRecipeSchema.parse(request.body)
+      return importRecipeFromUrl(url, { userAgent: app.ctx.env.OFF_USER_AGENT })
+    },
+  )
 
   app.post('/recipes', async (request, reply) => {
     const adult = requireAdult(request)

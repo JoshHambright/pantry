@@ -13,17 +13,18 @@ Last updated: 2026-09-25.
 
 Worth being precise about, because "the tests pass" covers less than it sounds.
 
-| Layer                    | How it was checked                                                                                                   | Confidence                                                                              |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Unit and inventory maths | 40-odd unit tests over conversion groups, FIFO planning, par shortfall, quantity parsing                             | High — this is pure logic and fully covered                                             |
-| API behaviour            | 60-odd integration tests against a real PostgreSQL 16, exercising HTTP through `app.inject`                          | High — real driver, real constraints, real cascades                                     |
-| Role enforcement         | Tests per route family, including a child trying each adult-only write                                               | High                                                                                    |
-| Household isolation      | A second household created directly in the DB, then queried through the API                                          | Moderate — one case, not exhaustive                                                     |
-| The web UI               | Driven through every screen in Chromium (`scripts/ui-walkthrough.mjs`)                                               | Moderate — it renders and navigates; interactions beyond the happy path are unexercised |
-| Photo scan flow          | Driven end to end against a canned provider: propose → confirm → apply                                               | Moderate — the _flow_ is proven, the model's accuracy is not                            |
-| Production image         | The exact runtime layout (`pnpm deploy` output + drizzle + web) assembled and booted; CI builds the image            | Moderate — `docker compose up` itself has never been run                                |
-| Compose configuration    | `docker compose config` renders and validates it without a daemon; the environment it produces is now a test fixture | Moderate — the rendered config is right, but nothing has orchestrated it                |
-| Barcode scanning         | Code path reviewed, never executed against a camera                                                                  | **None**                                                                                |
+| Layer                    | How it was checked                                                                                                                                        | Confidence                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Unit and inventory maths | 40-odd unit tests over conversion groups, FIFO planning, par shortfall, quantity parsing                                                                  | High — this is pure logic and fully covered                                               |
+| API behaviour            | 60-odd integration tests against a real PostgreSQL 16, exercising HTTP through `app.inject`                                                               | High — real driver, real constraints, real cascades                                       |
+| Role enforcement         | Tests per route family, including a child trying each adult-only write                                                                                    | High                                                                                      |
+| Household isolation      | A second household created directly in the DB, then queried through the API                                                                               | Moderate — one case, not exhaustive                                                       |
+| The web UI               | Driven through every screen in Chromium (`scripts/ui-walkthrough.mjs`)                                                                                    | Moderate — it renders and navigates; interactions beyond the happy path are unexercised   |
+| Photo scan flow          | Driven end to end against a canned provider: propose → confirm → apply                                                                                    | Moderate — the _flow_ is proven, the model's accuracy is not                              |
+| Production image         | The exact runtime layout (`pnpm deploy` output + drizzle + web) assembled and booted; CI builds the image                                                 | Moderate — `docker compose up` itself has never been run                                  |
+| Compose configuration    | `docker compose config` renders and validates it without a daemon; the environment it produces is now a test fixture                                      | Moderate — the rendered config is right, but nothing has orchestrated it                  |
+| Recipe importer          | 63 unit tests over JSON-LD shapes, servings/instruction/ingredient normalisation, and the SSRF guard; 8 integration tests over auth and refused addresses | Moderate — thorough against schema.org-shaped fixtures, but it has never read a real page |
+| Barcode scanning         | Code path reviewed, never executed against a camera                                                                                                       | **None**                                                                                  |
 
 ### Specifically not proven
 
@@ -41,6 +42,14 @@ Worth being precise about, because "the tests pass" covers less than it sounds.
 - **Open Food Facts has never actually been called.** Tests use a null lookup so
   CI stays offline. The mapping code is written against the documented v2 shape
   and reviewed, not exercised.
+- **The recipe importer has never read a real recipe page.** The development
+  container's egress proxy denies the recipe sites by policy, so every attempt
+  returned a proxy 403 rather than a page. The JSON-LD handling is tested hard
+  against fixtures modelled on schema.org — including `@graph` nesting, array
+  `@type`, `HowToSection`, and the four shapes `recipeInstructions` takes — but
+  fixtures are written from the spec, and real pages are written by people. The
+  first real import is where that gets tested. Worth trying two or three sites
+  early and seeing what comes back.
 
 ---
 

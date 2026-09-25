@@ -213,6 +213,10 @@ export const applyScanSchema = z.object({
   candidates: z.array(scanCandidateConfirmSchema).min(1).max(100),
 })
 
+export const importRecipeSchema = z.object({
+  url: z.string().trim().min(1).max(2000),
+})
+
 export const barcodeLookupSchema = z.object({
   upc: z
     .string()
@@ -236,4 +240,5 @@ export type RecipeIngredientInput = z.infer<typeof recipeIngredientSchema>
 export type MealPlanEntryInput = z.infer<typeof mealPlanEntrySchema>
 export type CookInput = z.infer<typeof cookSchema>
 export type ApplyScanInput = z.infer<typeof applyScanSchema>
+export type ImportRecipeInput = z.infer<typeof importRecipeSchema>
 export type ScanCandidateConfirm = z.infer<typeof scanCandidateConfirmSchema>
