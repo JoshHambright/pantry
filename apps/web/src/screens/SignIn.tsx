@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiRequestError } from '../api.js'
 import { Banner, Field, Spinner } from '../components/ui.js'
 import { initials } from '../lib/format.js'
+import { useOnline } from '../hooks/useOnline.js'
 
 interface Pickable {
   id: string
@@ -11,6 +12,7 @@ interface Pickable {
 }
 
 export function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
+  const online = useOnline()
   const [members, setMembers] = useState<Pickable[] | null>(null)
   const [bootstrapped, setBootstrapped] = useState(true)
   const [chosen, setChosen] = useState<Pickable | null>(null)
@@ -51,6 +53,11 @@ export function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <div className="app">
       <main className="app__main">
+        {online ? null : (
+          <div className="banner banner--warn" role="status">
+            Offline. You can&rsquo;t sign in until this phone is back on the network.
+          </div>
+        )}
         {chosen ? (
           <PinEntry member={chosen} onBack={() => setChosen(null)} onSignedIn={onSignedIn} />
         ) : (

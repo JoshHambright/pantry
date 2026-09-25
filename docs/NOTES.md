@@ -59,8 +59,12 @@ a bug.
 - **The scan `hint` field is accepted by the API but not exposed in the UI.**
   Telling the model "this is the freezer haul" should measurably help. It was
   left out to keep the scan screen to one button.
-- **Nothing is offline.** No service worker. Opening the pantry list in a
-  basement with no signal currently fails. `P7-02`.
+- ~~**Nothing is offline.**~~ Done, 2026-09-25 (`P7-02`, D-017). The shell is
+  precached and `GET /api/*` is cached network-first, so the pantry opens in a
+  basement showing the last data that phone saw, with a banner saying so.
+  Writes are refused rather than queued. Verified by
+  `scripts/offline-check.mjs`, which signs in, cuts the network, and asserts
+  the pantry still lists products _and_ that the banner is showing.
 - **Putting a shop away is per-item.** Checkout handles the shopping list, but a
   big scan still means confirming a long list one row at a time. `P7-06`.
 - **`preferredDisplayUnit` picks the largest holding's unit.** Two products of

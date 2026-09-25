@@ -130,7 +130,7 @@ actual use will probably ask for.
 | ID    | Task                                                | Status | Note                                                                                                                             |
 | ----- | --------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------- |
 | P7-01 | Run it on the real hardware and fix what that finds |   ⬜   | The only task that matters until it is done. Three boot-blocking bugs already found by rendering the compose file — see NOTES.md |
-| P7-02 | Offline shell via a service worker                  |   ⬜   | The pantry list should open in a basement freezer                                                                                |
+| P7-02 | Offline shell via a service worker                  |   ✅   | Shell precached, GET reads cached, writes refused, banner when offline (D-017)                                                   |
 | P7-03 | Barcode scanning on a real iPhone                   |   ⬜   | ZXing fallback path is untested on device                                                                                        |
 | P7-04 | Photo scan accuracy pass against real counter shots |   ⬜   | Tune the prompt against what it actually gets wrong                                                                              |
 | P7-05 | Expiry reminders (push or a daily digest)           |   ⬜   | Needs a decision on delivery first                                                                                               |

@@ -11,6 +11,7 @@ import { Meals } from './screens/Meals.js'
 import { Requests } from './screens/Requests.js'
 import { Settings } from './screens/Settings.js'
 import { initials } from './lib/format.js'
+import { useOnline } from './hooks/useOnline.js'
 
 export type Tab = 'home' | 'scan' | 'pantry' | 'list' | 'meals'
 export type Route = { tab: Tab } | { tab: 'requests' } | { tab: 'settings' }
@@ -29,6 +30,7 @@ export function App() {
   const [route, setRoute] = useState<Route>({ tab: 'home' })
   /** Bumped to make every screen reload without threading callbacks everywhere. */
   const [revision, setRevision] = useState(0)
+  const online = useOnline()
 
   const refresh = useCallback(() => setRevision((current) => current + 1), [])
 
@@ -89,6 +91,12 @@ export function App() {
       </header>
 
       <main className="app__main">
+        {online ? null : (
+          <div className="banner banner--warn" role="status">
+            Offline &mdash; showing the last data this phone saw. Changes will not save until
+            you&rsquo;re back on the network.
+          </div>
+        )}
         {route.tab === 'home' ? (
           <Dashboard
             key={`home-${revision}`}

@@ -7,6 +7,7 @@ Development tooling. None of this ships in the image.
 | `dev-db.sh`              | Start a native PostgreSQL when Docker is unavailable                                      |
 | `stub-vision-server.mjs` | The real API with a canned vision provider, so the photo-scan flow can be driven for free |
 | `ui-walkthrough.mjs`     | Drive every screen in Chromium and screenshot it                                          |
+| `offline-check.mjs`      | Prove the installed app still works with the network cut                                  |
 
 ## dev-db.sh
 
@@ -60,3 +61,21 @@ Playwright's bundled Chromium may not match what is installed. It defaults to
 the cloud image's browser at `/opt/pw-browsers/chromium-1194/...`; set
 `CHROME_PATH` to point elsewhere, or `USE_BUNDLED_CHROMIUM=1` on a machine where
 `npx playwright install` has been run.
+
+## offline-check.mjs
+
+A manifest makes the app installable; only a service worker makes it usable
+offline. This signs in, cuts the network, reloads, and asserts three things: the
+shell renders, the pantry still lists products from cache, and the offline
+banner is showing — stale data that looks live would be worse than a white
+screen. It also checks that a write is refused rather than silently lost.
+
+```bash
+pnpm build
+DATABASE_URL=... PORT=8099 WEB_DIST=apps/web/dist node apps/api/dist/index.js &
+node scripts/offline-check.mjs --base http://127.0.0.1:8099
+```
+
+Exits non-zero if any of those fail. Not in CI: it needs a built app, a
+database, a server and a browser — a lot of moving parts for a check that only
+changes when the service worker config does.

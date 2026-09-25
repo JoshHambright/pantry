@@ -224,3 +224,36 @@ answerable.
 **Costs:** A lot's expiry date is not recoverable after it empties. Nothing
 needs it.
 **Status:** ✅ Accepted
+
+---
+
+### D-017 · Offline is read-only, and says so
+
+**Chose:** A service worker precaches the app shell and caches `GET /api/*`
+responses (network-first). Writes are never queued or replayed — they fail. A
+banner says the app is offline whenever the browser thinks it is.
+**Why:** A chest freezer in a basement is exactly where you want to check
+whether you already have mince, and exactly where there is no signal. Showing
+the last known inventory there is genuinely useful. Queuing _writes_, though,
+would mean two phones editing the same pantry from stale state and reconciling
+later — which is how an inventory silently stops matching the kitchen, the one
+failure this product cannot afford (see `PRODUCT.md`, "never silently guess").
+Refusing the write is honest and costs nothing: whoever is holding the food can
+do it again upstairs.
+**Costs:** No offline editing. Cached data can be stale, which is why the
+banner is not optional.
+**Status:** ✅ Accepted
+
+---
+
+### D-018 · The precache size limit is deliberately loose
+
+**Chose:** `maximumFileSizeToCacheInBytes` at 4 MB, well above anything the
+build currently produces.
+**Why:** A limit tuned just above today's bundle is a trap. The day the main
+chunk grows past it, that chunk silently drops out of the precache, the app
+stops working offline, and nothing fails — not the build, not CI, not a test.
+The cost of being generous is one ~125 KB gzipped chunk (ZXing, which only
+Safari loads) fetched once on a home network.
+**Costs:** A slightly larger install. Immaterial at household scale.
+**Status:** ✅ Accepted

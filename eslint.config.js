@@ -9,7 +9,9 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     // Dev scripts are plain Node ESM, outside the TypeScript projects, so the
-    // Node globals have to be declared for them explicitly.
+    // Node globals have to be declared for them explicitly. The browser globals
+    // are here too: the bodies passed to page.evaluate() are serialised and run
+    // inside Chromium, so they are legitimately not Node code.
     files: ['scripts/**/*.mjs'],
     languageOptions: {
       globals: {
@@ -18,6 +20,10 @@ export default tseslint.config(
         process: 'readonly',
         URL: 'readonly',
         fetch: 'readonly',
+        caches: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        window: 'readonly',
       },
     },
   },

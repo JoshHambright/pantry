@@ -61,7 +61,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
       # The image is what actually gets deployed, so a broken Dockerfile is a
       # broken release even when every test passes.
       - name: Build image
         run: docker build -t pantry:ci .
+
+      # The compose file is a separate artefact from the image, and a green
+      # image build says nothing about it. Rendering it caught three
+      # boot-blocking bugs once already — see docs/NOTES.md.
+      - name: Render the compose file
+        env:
+          POSTGRES_PASSWORD: ci-only-not-a-real-password
+        run: docker compose config
+
+      - name: Fail if the rendered config drops the database URL
+        env:
+          POSTGRES_PASSWORD: ci-only-not-a-real-password
+        run: |
+          docker compose config \
+            | grep -q 'DATABASE_URL: postgres://pantry:ci-only-not-a-real-password@db:5432/pantry'
