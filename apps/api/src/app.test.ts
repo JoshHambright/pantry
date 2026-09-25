@@ -674,6 +674,143 @@ describeDb('pantry api', () => {
       expect(rows[0]?.totals[0]).toMatchObject({ quantity: 1.5, unit: 'kg' })
     })
 
+    it('suggests a destination per item, from its category', async () => {
+      const josh = await bootstrapHousehold(harness.app)
+      const fridgeId = await locationIdNamed(harness.app, josh, 'Fridge')
+      const freezerId = await locationIdNamed(harness.app, josh, 'Freezer')
+      const pantryId = await locationIdNamed(harness.app, josh, 'Pantry')
+
+      harness.setVisionItems([
+        { name: 'Milk', brand: null, category: 'dairy', quantity: 1, unit: 'gal', confidence: 0.9 },
+        {
+          name: 'Peas',
+          brand: null,
+          category: 'frozen',
+          quantity: 1,
+          unit: 'bag',
+          confidence: 0.9,
+        },
+        {
+          name: 'Beans',
+          brand: null,
+          category: 'canned',
+          quantity: 2,
+          unit: 'can',
+          confidence: 0.9,
+        },
+      ])
+
+      const scanned = await scan(josh)
+      const batch = scanned.json<{
+        candidates: { name: string; suggestedLocationId: string | null }[]
+      }>()
+      const suggestion = (name: string) =>
+        batch.candidates.find((candidate) => candidate.name === name)?.suggestedLocationId
+
+      expect(suggestion('Milk')).toBe(fridgeId)
+      expect(suggestion('Peas')).toBe(freezerId)
+      expect(suggestion('Beans')).toBe(pantryId)
+    })
+
+    it('puts one shop away across three places in a single confirmation', async () => {
+      const josh = await bootstrapHousehold(harness.app)
+      const fridgeId = await locationIdNamed(harness.app, josh, 'Fridge')
+      const freezerId = await locationIdNamed(harness.app, josh, 'Freezer')
+      const pantryId = await locationIdNamed(harness.app, josh, 'Pantry')
+
+      harness.setVisionItems([
+        { name: 'Milk', brand: null, category: 'dairy', quantity: 1, unit: 'gal', confidence: 0.9 },
+        {
+          name: 'Peas',
+          brand: null,
+          category: 'frozen',
+          quantity: 1,
+          unit: 'bag',
+          confidence: 0.9,
+        },
+        {
+          name: 'Beans',
+          brand: null,
+          category: 'canned',
+          quantity: 2,
+          unit: 'can',
+          confidence: 0.9,
+        },
+      ])
+
+      const scanned = await scan(josh)
+      const batch = scanned.json<{ id: string; candidates: { id: string; name: string }[] }>()
+
+      const applied = await post(`/api/scan/${batch.id}/apply`, josh, {
+        locationId: pantryId,
+        candidates: batch.candidates.map((candidate) => ({
+          candidateId: candidate.id,
+          accepted: true,
+          locationId:
+            candidate.name === 'Milk' ? fridgeId : candidate.name === 'Peas' ? freezerId : pantryId,
+        })),
+      })
+      expect(applied.json<{ added: number }>().added).toBe(3)
+
+      const rows = await inventory(josh)
+      const whereIs = (name: string) =>
+        rows.find((row) => row.product.name === name)?.lots[0]?.locationName
+
+      expect(whereIs('Milk')).toBe('Fridge')
+      expect(whereIs('Peas')).toBe('Freezer')
+      expect(whereIs('Beans')).toBe('Pantry')
+    })
+
+    it('falls back to the batch destination when an item has none', async () => {
+      const josh = await bootstrapHousehold(harness.app)
+      const freezerId = await locationIdNamed(harness.app, josh, 'Freezer')
+      harness.setVisionItems([
+        { name: 'Milk', brand: null, category: 'dairy', quantity: 1, unit: 'gal', confidence: 0.9 },
+      ])
+
+      const scanned = await scan(josh)
+      const batch = scanned.json<{ id: string; candidates: { id: string }[] }>()
+
+      await post(`/api/scan/${batch.id}/apply`, josh, {
+        locationId: freezerId,
+        candidates: [{ candidateId: batch.candidates[0]?.id, accepted: true }],
+      })
+
+      const rows = await inventory(josh)
+      expect(rows[0]?.lots[0]?.locationName).toBe('Freezer')
+    })
+
+    it('refuses a per-item destination belonging to another household', async () => {
+      const josh = await bootstrapHousehold(harness.app)
+      const pantryId = await locationIdNamed(harness.app, josh, 'Pantry')
+      harness.setVisionItems([
+        { name: 'Milk', brand: null, category: 'dairy', quantity: 1, unit: 'gal', confidence: 0.9 },
+      ])
+
+      const scanned = await scan(josh)
+      const batch = scanned.json<{ id: string; candidates: { id: string }[] }>()
+
+      const schema = await import('./db/schema.js')
+      const [other] = await harness.db
+        .insert(schema.households)
+        .values({ name: 'Next door' })
+        .returning()
+      const [theirShelf] = await harness.db
+        .insert(schema.locations)
+        .values({ householdId: other!.id, name: 'Their shelf', kind: 'pantry' })
+        .returning()
+
+      const applied = await post(`/api/scan/${batch.id}/apply`, josh, {
+        locationId: pantryId,
+        candidates: [
+          { candidateId: batch.candidates[0]?.id, accepted: true, locationId: theirShelf!.id },
+        ],
+      })
+      expect(applied.statusCode).toBe(404)
+      // And nothing was written on the way to finding that out.
+      expect(await inventory(josh)).toHaveLength(0)
+    })
+
     it('records a failed scan instead of dropping it silently', async () => {
       const josh = await bootstrapHousehold(harness.app)
       harness.setVisionError(new Error('model exploded'))

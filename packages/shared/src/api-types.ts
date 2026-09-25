@@ -172,6 +172,12 @@ export interface ScanCandidate {
   confidence: number
   /** Set when the guess matched something already in the product catalogue. */
   productId: string | null
+  /**
+   * Where this item probably belongs, from its category. One photo of a shop
+   * holds fridge, freezer and cupboard items, so a single destination for the
+   * whole batch would guarantee a tidy-up afterwards.
+   */
+  suggestedLocationId: string | null
   accepted: boolean
 }
 

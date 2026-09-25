@@ -107,14 +107,13 @@ Everything is under `/api`. Authentication is a `httpOnly` session cookie set by
 
 ## Scanning · **Adult**
 
-| Method | Path                               | Notes                                                                                                                             |
-| ------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/scan`                            | `multipart/form-data`: up to 5 `photo` files and an optional `hint`. Returns a batch of candidates. Nothing enters the inventory. |
-| GET    | `/scan`                            | Recent batches.                                                                                                                   |
-| GET    | `/scan/:id`                        | One batch with its candidates.                                                                                                    |
-| POST   | `/scan/:id/apply`                  | Confirmed candidates become stock. `409` if already applied.                                                                      |
-| DELETE | `/scan/:id`                        |                                                                                                                                   |
-| GET    | `/scan/suggest-location?category=` | Where a category most likely belongs.                                                                                             |
+| Method | Path              | Notes                                                                                                                                                                                  |
+| ------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/scan`           | `multipart/form-data`: up to 5 `photo` files and an optional `hint`. Returns a batch of candidates, each with a `suggestedLocationId` from its category. Nothing enters the inventory. |
+| GET    | `/scan`           | Recent batches.                                                                                                                                                                        |
+| GET    | `/scan/:id`       | One batch with its candidates.                                                                                                                                                         |
+| POST   | `/scan/:id/apply` | Confirmed candidates become stock. Each may carry its own `locationId`; the top-level one is the fallback. `409` if already applied.                                                   |
+| DELETE | `/scan/:id`       |                                                                                                                                                                                        |
 
 ## Dashboard
 

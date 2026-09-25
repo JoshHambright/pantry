@@ -65,8 +65,16 @@ a bug.
   Writes are refused rather than queued. Verified by
   `scripts/offline-check.mjs`, which signs in, cuts the network, and asserts
   the pantry still lists products _and_ that the banner is showing.
-- **Putting a shop away is per-item.** Checkout handles the shopping list, but a
-  big scan still means confirming a long list one row at a time. `P7-06`.
+- ~~**Putting a shop away is per-item.**~~ Partly done, 2026-09-25 (`P7-06`).
+  Each scanned candidate now carries its own destination, suggested from its
+  category, so one photo of a mixed shop files itself across fridge, freezer and
+  cupboard in a single confirmation. Still per-item: editing several _existing_
+  lots at once (a bulk move or a bulk discard). That has not actually been
+  wanted yet, so it waits for real use rather than being built on spec.
+- **`POST /shopping/checkout` still takes one destination for the whole trip.**
+  The same shape of problem the scan had, but the fix is less obviously worth
+  it: a shopping list is typed by a person who can run checkout twice. Revisit
+  if that turns out to annoy.
 - **`preferredDisplayUnit` picks the largest holding's unit.** Two products of
   the same food bought in different units will display in whichever is bigger,
   which could flip between visits. Rare, and the alternative — a per-product

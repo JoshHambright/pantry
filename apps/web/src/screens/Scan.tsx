@@ -358,6 +358,8 @@ interface Draft {
   quantity: number
   unit: UnitCode
   name: string
+  /** One photo of a shop is fridge, freezer and cupboard all at once. */
+  locationId: string
 }
 
 function ReviewScan({
@@ -371,6 +373,7 @@ function ReviewScan({
   onClose: () => void
   onApplied: () => void
 }) {
+  const fallbackLocationId = locations[0]?.id ?? ''
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
     Object.fromEntries(
       batch.candidates.map((candidate) => [
@@ -382,11 +385,11 @@ function ReviewScan({
           quantity: candidate.quantity,
           unit: candidate.unit,
           name: candidate.name,
+          locationId: candidate.suggestedLocationId ?? fallbackLocationId,
         },
       ]),
     ),
   )
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -400,7 +403,9 @@ function ReviewScan({
     setError(null)
     try {
       await api.scan.apply(batch.id, {
-        locationId,
+        // Every accepted item carries its own destination; this is only the
+        // fallback the server falls back to if one arrives without.
+        locationId: fallbackLocationId,
         candidates: batch.candidates.map((candidate) => {
           const draft = drafts[candidate.id]!
           return {
@@ -409,6 +414,7 @@ function ReviewScan({
             name: draft.name,
             quantity: draft.quantity,
             unit: draft.unit,
+            locationId: draft.locationId,
           }
         }),
       })
@@ -448,17 +454,36 @@ function ReviewScan({
             key={candidate.id}
             candidate={candidate}
             draft={drafts[candidate.id]!}
+            locations={locations}
             onChange={(patch) => update(candidate.id, patch)}
           />
         ))}
       </ul>
 
       <div className="stack" style={{ marginTop: 14 }}>
-        <Field label="Put it all in">
-          <select value={locationId} onChange={(event) => setLocationId(event.target.value)}>
+        <Field
+          label="Send everything to one place"
+          hint="Only if they all go together — otherwise leave the destinations above."
+        >
+          <select
+            value=""
+            onChange={(event) => {
+              const next = event.target.value
+              if (!next) return
+              setDrafts((current) =>
+                Object.fromEntries(
+                  Object.entries(current).map(([id, draft]) => [
+                    id,
+                    { ...draft, locationId: next },
+                  ]),
+                ),
+              )
+            }}
+          >
+            <option value="">&mdash; keep as set &mdash;</option>
             {locations.map((location) => (
               <option key={location.id} value={location.id}>
-                {location.name}
+                All to the {location.name.toLowerCase()}
               </option>
             ))}
           </select>
@@ -466,7 +491,7 @@ function ReviewScan({
         <button
           className="btn btn--primary btn--lg btn--block"
           onClick={() => void apply()}
-          disabled={busy || acceptedCount === 0 || !locationId}
+          disabled={busy || acceptedCount === 0 || !fallbackLocationId}
         >
           {busy ? 'Adding…' : `Add ${acceptedCount} to pantry`}
         </button>
@@ -478,13 +503,16 @@ function ReviewScan({
 function CandidateRow({
   candidate,
   draft,
+  locations,
   onChange,
 }: {
   candidate: ScanCandidate
   draft: Draft
+  locations: Location[]
   onChange: (patch: Partial<Draft>) => void
 }) {
   const [open, setOpen] = useState(false)
+  const destination = locations.find((location) => location.id === draft.locationId)
 
   return (
     <li className="card" style={{ padding: 12 }}>
@@ -507,6 +535,7 @@ function CandidateRow({
           <div className="muted">
             {draft.quantity} {draft.unit === 'each' ? '' : draft.unit}
             {candidate.brand ? ` · ${candidate.brand}` : ''}
+            {destination ? ` → ${destination.name}` : ''}
           </div>
         </button>
         {candidate.productId ? <span className="chip chip--ok">Known</span> : null}
@@ -529,6 +558,18 @@ function CandidateRow({
               <UnitSelect value={draft.unit} onChange={(unit) => onChange({ unit })} />
             </Field>
           </div>
+          <Field label="Where it goes">
+            <select
+              value={draft.locationId}
+              onChange={(event) => onChange({ locationId: event.target.value })}
+            >
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
       ) : null}
     </li>

@@ -7,14 +7,41 @@ import {
   type ScanCandidate,
 } from '@pantry/shared'
 import { requireAdult, requireMember } from '../context.js'
-import { locations, products, scanBatches, scanCandidates } from '../db/schema.js'
+import { locations as locationsTable, products, scanBatches, scanCandidates } from '../db/schema.js'
 import { badRequest, conflict, notFound, unavailable } from '../errors.js'
 import { addStock } from '../services/stock.js'
 import { VisionError, type VisionImage } from '../services/vision.js'
 
 const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
-const toCandidate = (row: typeof scanCandidates.$inferSelect): ScanCandidate => ({
+/**
+ * Which location each category should land in, for this household.
+ *
+ * Computed per request rather than stored: locations get renamed and added, and
+ * a suggestion that outlives the place it points at is worse than none.
+ */
+type LocationSuggestions = Readonly<Record<string, string | undefined>>
+
+function suggestionsFor(
+  locations: readonly (typeof locationsTable.$inferSelect)[],
+): LocationSuggestions {
+  const firstOfKind = new Map<string, string>()
+  for (const location of locations) {
+    if (!firstOfKind.has(location.kind)) firstOfKind.set(location.kind, location.id)
+  }
+  const fallback = locations[0]?.id
+
+  const byCategory: Record<string, string | undefined> = {}
+  for (const [category, kind] of Object.entries(CATEGORY_DEFAULT_STORAGE)) {
+    byCategory[category] = firstOfKind.get(kind) ?? fallback
+  }
+  return byCategory
+}
+
+const toCandidate = (
+  row: typeof scanCandidates.$inferSelect,
+  suggestions: LocationSuggestions,
+): ScanCandidate => ({
   id: row.id,
   name: row.name,
   brand: row.brand,
@@ -24,23 +51,28 @@ const toCandidate = (row: typeof scanCandidates.$inferSelect): ScanCandidate => 
   unit: row.unit,
   confidence: row.confidence,
   productId: row.productId,
+  suggestedLocationId: suggestions[row.category] ?? null,
   accepted: row.accepted,
 })
 
 const toBatch = (
   row: typeof scanBatches.$inferSelect,
   candidates: readonly (typeof scanCandidates.$inferSelect)[],
+  suggestions: LocationSuggestions = {},
 ): ScanBatch => ({
   id: row.id,
   status: row.status,
   note: row.note,
   error: row.error,
-  candidates: candidates.map(toCandidate),
+  candidates: candidates.map((candidate) => toCandidate(candidate, suggestions)),
   createdAt: row.createdAt.toISOString(),
 })
 
 export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
   const { db, vision } = app.ctx
+
+  const householdLocations = (householdId: string) =>
+    db.select().from(locationsTable).where(eq(locationsTable.householdId, householdId))
 
   /**
    * Photo scan. Images are read into memory, sent to Claude, and dropped —
@@ -120,7 +152,8 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
           .returning()
 
         await db.update(scanBatches).set({ status: 'ready' }).where(eq(scanBatches.id, batch.id))
-        return reply.status(201).send(toBatch({ ...batch, status: 'ready' }, rows))
+        const suggestions = suggestionsFor(await householdLocations(adult.householdId))
+        return reply.status(201).send(toBatch({ ...batch, status: 'ready' }, rows, suggestions))
       } catch (error) {
         const message =
           error instanceof VisionError ? error.message : 'The scan failed unexpectedly'
@@ -160,7 +193,7 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
     if (!batch) throw notFound('Scan')
 
     const candidates = await db.select().from(scanCandidates).where(eq(scanCandidates.batchId, id))
-    return toBatch(batch, candidates)
+    return toBatch(batch, candidates, suggestionsFor(await householdLocations(member.householdId)))
   })
 
   /** Confirmed candidates become real stock. Nothing is added without this step. */
@@ -177,12 +210,16 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
     if (!batch) throw notFound('Scan')
     if (batch.status === 'applied') throw conflict('That scan has already been added')
 
-    const [location] = await db
-      .select({ id: locations.id })
-      .from(locations)
-      .where(and(eq(locations.id, input.locationId), eq(locations.householdId, adult.householdId)))
-      .limit(1)
-    if (!location) throw notFound('Location')
+    // Every destination in the payload has to belong to this household, not
+    // just the batch default — a per-item override is a location id from the
+    // client like any other.
+    const ownLocations = new Set((await householdLocations(adult.householdId)).map((row) => row.id))
+    if (!ownLocations.has(input.locationId)) throw notFound('Location')
+    for (const confirmation of input.candidates) {
+      if (confirmation.locationId && !ownLocations.has(confirmation.locationId)) {
+        throw notFound('Location')
+      }
+    }
 
     const stored = await db.select().from(scanCandidates).where(eq(scanCandidates.batchId, id))
     const byId = new Map(stored.map((row) => [row.id, row]))
@@ -217,7 +254,7 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
         householdId: adult.householdId,
         memberId: adult.id,
         productId,
-        locationId: input.locationId,
+        locationId: confirmation.locationId ?? input.locationId,
         quantity,
         unit,
         expiresAt: confirmation.expiresAt ?? null,
@@ -246,25 +283,6 @@ export async function registerScanRoutes(app: FastifyInstance): Promise<void> {
     if (deleted.length === 0) throw notFound('Scan')
 
     return reply.status(204).send()
-  })
-
-  /** Where a scanned item most likely belongs, so the UI can pre-select it. */
-  app.get('/scan/suggest-location', async (request) => {
-    const member = requireMember(request)
-    const { category } = request.query as { category?: string }
-
-    const rows = await db
-      .select()
-      .from(locations)
-      .where(eq(locations.householdId, member.householdId))
-
-    const wanted =
-      category && category in CATEGORY_DEFAULT_STORAGE
-        ? CATEGORY_DEFAULT_STORAGE[category as keyof typeof CATEGORY_DEFAULT_STORAGE]
-        : 'pantry'
-
-    const match = rows.find((row) => row.kind === wanted) ?? rows[0]
-    return { locationId: match?.id ?? null }
   })
 }
 

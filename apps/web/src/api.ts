@@ -212,6 +212,7 @@ export const api = {
     apply: (
       id: string,
       body: {
+        /** Where anything without its own destination goes. */
         locationId: string
         candidates: {
           candidateId: string
@@ -219,11 +220,10 @@ export const api = {
           name?: string
           quantity?: number
           unit?: UnitCode
+          locationId?: string
         }[]
       },
     ) => request<{ added: number }>(`/scan/${id}/apply`, { method: 'POST', body }),
-    suggestLocation: (category: string) =>
-      request<{ locationId: string | null }>(`/scan/suggest-location?category=${category}`),
   },
 
   dashboard: () => request<DashboardSummary>('/dashboard'),

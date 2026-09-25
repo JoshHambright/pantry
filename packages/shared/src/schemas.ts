@@ -203,9 +203,12 @@ export const scanCandidateConfirmSchema = z.object({
   category: categorySchema.optional(),
   productId: idSchema.nullish(),
   expiresAt: isoDateSchema.nullish(),
+  /** Overrides the batch destination for this one item. */
+  locationId: idSchema.optional(),
 })
 
 export const applyScanSchema = z.object({
+  /** Where anything without its own destination goes. */
   locationId: idSchema,
   candidates: z.array(scanCandidateConfirmSchema).min(1).max(100),
 })

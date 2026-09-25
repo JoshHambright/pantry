@@ -127,17 +127,17 @@ Last updated: 2026-09-22
 Nothing here is needed to start using the app. These are the things a month of
 actual use will probably ask for.
 
-| ID    | Task                                                | Status | Note                                                                                                                             |
-| ----- | --------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------- |
-| P7-01 | Run it on the real hardware and fix what that finds |   ⬜   | The only task that matters until it is done. Three boot-blocking bugs already found by rendering the compose file — see NOTES.md |
-| P7-02 | Offline shell via a service worker                  |   ✅   | Shell precached, GET reads cached, writes refused, banner when offline (D-017)                                                   |
-| P7-03 | Barcode scanning on a real iPhone                   |   ⬜   | ZXing fallback path is untested on device                                                                                        |
-| P7-04 | Photo scan accuracy pass against real counter shots |   ⬜   | Tune the prompt against what it actually gets wrong                                                                              |
-| P7-05 | Expiry reminders (push or a daily digest)           |   ⬜   | Needs a decision on delivery first                                                                                               |
-| P7-06 | Bulk edit in the pantry                             |   ⬜   | Putting a whole shop away is still per-item                                                                                      |
-| P7-07 | Recipe import from a URL                            |   ⬜   | Paste a link, get ingredients                                                                                                    |
-| P7-08 | "What can I make right now" as a screen             |   ⬜   | The data is already computed                                                                                                     |
-| P7-09 | Usage rates from the event log                      |   ⬜   | Would make par levels suggest themselves                                                                                         |
+| ID    | Task                                                | Status | Note                                                                                                                                                                                                         |
+| ----- | --------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P7-01 | Run it on the real hardware and fix what that finds |   ⬜   | The only task that matters until it is done. Three boot-blocking bugs already found by rendering the compose file — see NOTES.md                                                                             |
+| P7-02 | Offline shell via a service worker                  |   ✅   | Shell precached, GET reads cached, writes refused, banner when offline (D-017)                                                                                                                               |
+| P7-03 | Barcode scanning on a real iPhone                   |   ⬜   | ZXing fallback path is untested on device                                                                                                                                                                    |
+| P7-04 | Photo scan accuracy pass against real counter shots |   ⬜   | Tune the prompt against what it actually gets wrong                                                                                                                                                          |
+| P7-05 | Expiry reminders (push or a daily digest)           |   ⬜   | Needs a decision on delivery first                                                                                                                                                                           |
+| P7-06 | Per-item destinations when putting a shop away      |   ✅   | One photo is fridge, freezer and cupboard at once; each candidate now carries its own location, suggested from its category. Multi-select editing of _existing_ lots is a separate want that has not come up |
+| P7-07 | Recipe import from a URL                            |   ⬜   | Paste a link, get ingredients                                                                                                                                                                                |
+| P7-08 | "What can I make right now" as a screen             |   ⬜   | The data is already computed                                                                                                                                                                                 |
+| P7-09 | Usage rates from the event log                      |   ⬜   | Would make par levels suggest themselves                                                                                                                                                                     |
 
 ---
 
