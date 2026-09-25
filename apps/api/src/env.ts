@@ -10,7 +10,21 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
 
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DATABASE_URL: z
+    .string()
+    .min(1, 'DATABASE_URL is required')
+    // The driver throws a bare "Invalid URL" on a password containing a
+    // character that is illegal in a URL's userinfo — `/` is the common one,
+    // since it appears in about 40% of `openssl rand -base64` output. Catch it
+    // here, where we can say what to do about it.
+    .refine((value) => {
+      try {
+        new URL(value)
+        return true
+      } catch {
+        return false
+      }
+    }, 'is not a valid URL. If the password contains / @ : # or ?, percent-encode it ' + '(a / becomes %2F) or generate one with `openssl rand -hex 32`'),
 
   SESSION_COOKIE_NAME: z.string().default('pantry_session'),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
@@ -44,8 +58,24 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>
 
+/**
+ * Docker Compose substitutes an unset variable as an empty string, not as an
+ * absent key: `ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}` arrives as `""`. An
+ * empty string is not "no value" to zod — it is a value that fails `.min(1)`,
+ * which turned "deploy without photo scanning" into a boot failure. Treating
+ * empty as absent also lets every `.default()` apply, which is what an operator
+ * who blanked a line in .env means.
+ */
+function withoutEmptyValues(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const cleaned: NodeJS.ProcessEnv = {}
+  for (const [key, value] of Object.entries(source)) {
+    if (value !== undefined && value.trim() !== '') cleaned[key] = value
+  }
+  return cleaned
+}
+
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envSchema.safeParse(source)
+  const parsed = envSchema.safeParse(withoutEmptyValues(source))
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)

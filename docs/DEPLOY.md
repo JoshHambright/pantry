@@ -27,9 +27,14 @@ cp .env.example .env
 Edit `.env`. The only value you must set is the database password:
 
 ```bash
-# generates something worth using
-openssl rand -base64 24
+# hex, not base64: the password is interpolated into a URL, and a `/` — which
+# turns up in about 40% of base64 output — makes that URL invalid.
+openssl rand -hex 32
 ```
+
+If you would rather use a password you already have and it contains `/`, `@`,
+`:`, `#` or `?`, percent-encode those characters (`/` becomes `%2F`). The app
+says so on startup if you get this wrong rather than failing obscurely.
 
 Then:
 

@@ -5,7 +5,7 @@ Session notes and loose ends. `DECISIONS.md` holds settled choices and
 was actually verified and how, what only looks verified, and the rough edges
 noticed in passing but deliberately not fixed.
 
-Last updated: 2026-09-22, end of the build session.
+Last updated: 2026-09-25.
 
 ---
 
@@ -13,23 +13,26 @@ Last updated: 2026-09-22, end of the build session.
 
 Worth being precise about, because "the tests pass" covers less than it sounds.
 
-| Layer                    | How it was checked                                                                                        | Confidence                                                                              |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Unit and inventory maths | 40-odd unit tests over conversion groups, FIFO planning, par shortfall, quantity parsing                  | High — this is pure logic and fully covered                                             |
-| API behaviour            | 60-odd integration tests against a real PostgreSQL 16, exercising HTTP through `app.inject`               | High — real driver, real constraints, real cascades                                     |
-| Role enforcement         | Tests per route family, including a child trying each adult-only write                                    | High                                                                                    |
-| Household isolation      | A second household created directly in the DB, then queried through the API                               | Moderate — one case, not exhaustive                                                     |
-| The web UI               | Driven through every screen in Chromium (`scripts/ui-walkthrough.mjs`)                                    | Moderate — it renders and navigates; interactions beyond the happy path are unexercised |
-| Photo scan flow          | Driven end to end against a canned provider: propose → confirm → apply                                    | Moderate — the _flow_ is proven, the model's accuracy is not                            |
-| Production image         | The exact runtime layout (`pnpm deploy` output + drizzle + web) assembled and booted; CI builds the image | Moderate — `docker compose up` itself has never been run                                |
-| Barcode scanning         | Code path reviewed, never executed against a camera                                                       | **None**                                                                                |
+| Layer                    | How it was checked                                                                                                   | Confidence                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Unit and inventory maths | 40-odd unit tests over conversion groups, FIFO planning, par shortfall, quantity parsing                             | High — this is pure logic and fully covered                                             |
+| API behaviour            | 60-odd integration tests against a real PostgreSQL 16, exercising HTTP through `app.inject`                          | High — real driver, real constraints, real cascades                                     |
+| Role enforcement         | Tests per route family, including a child trying each adult-only write                                               | High                                                                                    |
+| Household isolation      | A second household created directly in the DB, then queried through the API                                          | Moderate — one case, not exhaustive                                                     |
+| The web UI               | Driven through every screen in Chromium (`scripts/ui-walkthrough.mjs`)                                               | Moderate — it renders and navigates; interactions beyond the happy path are unexercised |
+| Photo scan flow          | Driven end to end against a canned provider: propose → confirm → apply                                               | Moderate — the _flow_ is proven, the model's accuracy is not                            |
+| Production image         | The exact runtime layout (`pnpm deploy` output + drizzle + web) assembled and booted; CI builds the image            | Moderate — `docker compose up` itself has never been run                                |
+| Compose configuration    | `docker compose config` renders and validates it without a daemon; the environment it produces is now a test fixture | Moderate — the rendered config is right, but nothing has orchestrated it                |
+| Barcode scanning         | Code path reviewed, never executed against a camera                                                                  | **None**                                                                                |
 
 ### Specifically not proven
 
 - **`docker compose up -d --build` has never been run.** No Docker daemon in the
-  development container. CI builds the image and the runtime layout boots, but
-  the compose file's wiring — healthcheck ordering, the `DATABASE_URL` it
-  assembles, the volume — is untested. This is the first thing that will bite.
+  development container. CI builds the image and the runtime layout boots.
+  `docker compose config` renders the file without a daemon, and doing that
+  found three boot-blocking bugs (below), so the _configuration_ is checked even
+  though the orchestration is not. Still untested: healthcheck ordering in
+  practice, the named volume, and restart behaviour.
 - **No camera has ever been pointed at this app.** Neither `BarcodeDetector` nor
   the ZXing fallback has run against real hardware. The ZXing path in particular
   is the one I would expect to need work, and it is the path iPhones take.
@@ -136,3 +139,27 @@ the detail:
 - **Node's type stripping does not rewrite `.js` specifiers to `.ts`.** Every
   import here is written `.js` because NodeNext requires it, so `node src/x.ts`
   cannot work. That is why `pnpm dev` runs under tsx.
+
+Found on 2026-09-25 by rendering the compose file with `docker compose config`
+and reading what it actually produces. All three would have hit on the first
+deploy:
+
+- **Compose substitutes an unset variable as `""`, not as absent.** So
+  `ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}` arrived as an empty string, which
+  is a _value_ that fails `z.string().min(1)`. Deploying without photo scanning
+  — the documented default — died at boot on a config error. `loadEnv` strips
+  empty values before parsing now, so defaults apply and optionals stay
+  optional.
+- **`openssl rand -base64 24` breaks `DATABASE_URL` about 40% of the time.** A
+  `/` is illegal in a URL's userinfo and the driver's own error is a bare
+  "Invalid URL". DEPLOY.md recommended exactly that command; it now recommends
+  `openssl rand -hex 32`, and the env schema catches an unparseable URL with a
+  message naming percent-encoding as the fix.
+- **The `./backups` bind mount would have been created by Docker as root**,
+  leaving the backup command in DEPLOY.md — which redirects on the _host_ —
+  unable to write. The directory is tracked now (via `.gitkeep`) so it exists,
+  owned by whoever cloned.
+
+The lesson worth keeping: "CI builds the image" and "the app runs" together say
+nothing about whether `docker compose up` works. The compose file is its own
+artefact and needs its own check.

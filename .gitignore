@@ -18,8 +18,12 @@ uploads/
 .vscode/
 .idea/
 
-# Database dumps (docker-compose mounts this)
-backups/
+# Database dumps. The directory itself is tracked so the bind mount in
+# docker-compose.yml finds a directory owned by whoever cloned the repo —
+# otherwise Docker creates it as root and the backup command in DEPLOY.md,
+# which redirects on the host, cannot write to it.
+backups/*
+!backups/.gitkeep
 
 # Screenshots from scripts/ui-walkthrough.mjs
 .walkthrough/
